@@ -37,16 +37,23 @@ private:
         _vertices[v].cor = PRETO;
     }
 
-public:
-    Grafo(int num_vertices): _vertices(num_vertices), _lista_adjacencia(num_vertices), _num_vertices(num_vertices) {}
-    ~Grafo(){}
+    int contarPontas(int v, int bloqueado, int profundidade, int profundidade_alvo){
+        int soma = 0;
+        _vertices[v].cor = CINZA;
+        _vertices[v].profundidade = profundidade;
 
-    void adicionarAresta(int v1, int v2){
-        _lista_adjacencia[v1].push_back(v2);
-        _lista_adjacencia[v2].push_back(v1);
+        if (profundidade == profundidade_alvo) return 1;
+        for (int i = 0; i < _lista_adjacencia[v].size(); i++){
+            if (_vertices[_lista_adjacencia[v][i]].cor != BRANCO) continue;
+            if (_lista_adjacencia[v][i] == bloqueado) continue;
+            _vertices[_lista_adjacencia[v][i]].pai = v;
+            soma += contarPontas(_lista_adjacencia[v][i], bloqueado, profundidade + 1, profundidade_alvo);
+        }
+        _vertices[v].cor = PRETO;
+        return soma;
     }
 
-    void dfs(){
+        void dfs(){
         dfsInit();
         for (int i = 0; i < _vertices.size(); i++){
             if (_vertices[i].cor != BRANCO) continue;
@@ -72,6 +79,7 @@ public:
 
     vector<int> encontrarCentros(){
         vector<int> centros;
+
         dfs();
         int A = verticeMaiorProfundidade();
 
@@ -93,20 +101,43 @@ public:
         return centros;
     }
 
-    void encontraMaiorCiclo(){
-        vector<int> centros;
-        centros = encontrarCentros();
-        int tamanho_ciclo = _vertices[verticeMaiorProfundidade()].profundidade + 1;
-        
-        if (centros.size() == 1){
+public:
+    Grafo(int num_vertices): _vertices(num_vertices), _lista_adjacencia(num_vertices), _num_vertices(num_vertices) {}
+    ~Grafo(){}
 
+    void adicionarAresta(int v1, int v2){
+        _lista_adjacencia[v1].push_back(v2);
+        _lista_adjacencia[v2].push_back(v1);
+    }
+
+    void encontrarMaiorCiclo(){
+        vector<int> centros;
+        long long quantidade_ciclos = 0;
+
+        centros = encontrarCentros();
+
+        int maior_profundidade = _vertices[verticeMaiorProfundidade()].profundidade;
+        int tamanho_ciclo = maior_profundidade+ 1;
+        dfsInit();
+        if (centros.size() == 1){
+            long long soma_acumulada = 0;
+            for (int i = 0; i < _lista_adjacencia[centros[0]].size(); i++){
+                int vizinho = _lista_adjacencia[centros[0]][i];
+                long long pontas = contarPontas(vizinho, centros[0], 1, maior_profundidade / 2);
+                quantidade_ciclos += pontas * soma_acumulada;
+                soma_acumulada += pontas;
+                
+            }
         }
         
         else if (centros.size() == 2){
+            long long primeiro_centro_pontas = contarPontas(centros[0], centros[1], 0, maior_profundidade / 2);
+            long long segundo_centro_pontas = contarPontas(centros[1], centros[0], 0, maior_profundidade / 2);
+            quantidade_ciclos = primeiro_centro_pontas * segundo_centro_pontas; 
+        }   
 
-        }
-
-        printf("%d", tamanho_ciclo);
+        printf("%d\n", tamanho_ciclo);
+        printf("%lld\n", quantidade_ciclos);
         
     }
 };
@@ -122,5 +153,7 @@ int main(){
         scanf("%d %d", &v1, &v2);
         universidade.adicionarAresta(v1 -1, v2 -1);
     }
+
+    universidade.encontrarMaiorCiclo();
 
 }
